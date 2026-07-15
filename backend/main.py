@@ -14,6 +14,7 @@ from backend.admin_api import router as admin_router
 from backend.captive_portal import router as portal_router
 from backend.config import HOST, PORT
 from backend.database import init_db
+from backend.firewall import setup_captive_portal
 from backend.scheduler import session_expiry_loop, stop as stop_scheduler
 
 logging.basicConfig(
@@ -29,6 +30,7 @@ _scheduler_task: asyncio.Task | None = None
 async def lifespan(app: FastAPI):
     global _scheduler_task
     init_db()
+    setup_captive_portal()
     _scheduler_task = asyncio.create_task(session_expiry_loop())
     yield
     stop_scheduler()
