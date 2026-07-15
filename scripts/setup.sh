@@ -124,7 +124,7 @@ DHCPCD
         ;;
     NetworkManager)
         nmcli con delete "PisoWiFi-AP" 2>/dev/null || true
-        nmcli con add type wifi ifname "$WIFI_IFACE" con-name "PisoWiFi-AP" autoconnect no
+        nmcli con add type wifi ifname "$WIFI_IFACE" con-name "PisoWiFi-AP" autoconnect no ssid "$SSID"
         nmcli con mod "PisoWiFi-AP" ipv4.addresses "${GATEWAY}/24"
         nmcli con mod "PisoWiFi-AP" ipv4.method manual
         nmcli con mod "PisoWiFi-AP" connection.autoconnect no
