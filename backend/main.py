@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Piso WiFi", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="Piso WiFi", version="1.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
 
     app.mount("/static", StaticFiles(directory="backend/static"), name="static")
     app.include_router(portal_router)
