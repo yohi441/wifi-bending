@@ -103,6 +103,15 @@ echo "[4/8] Configuring static IP for $WIFI_IFACE..."
 
 ip addr flush dev "$WIFI_IFACE" 2>/dev/null || true
 
+# Create a DHCP config for WAN so SSH stays reachable
+cat > /etc/systemd/network/11-piso-wan.network <<NETWORK
+[Match]
+Name=$WAN_IFACE
+
+[Network]
+DHCP=yes
+NETWORK
+
 cat > /etc/systemd/network/12-piso-wifi.network <<NETWORK
 [Match]
 Name=$WIFI_IFACE
