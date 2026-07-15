@@ -64,12 +64,12 @@ echo "Detected network manager: $NETWORK_MGR"
 
 # --- Install packages ---
 echo ""
-echo "[1/7] Installing packages..."
+echo "[1/8] Installing packages..."
 apt-get update -qq
 apt-get install -y -qq hostapd dnsmasq iptables-persistent netfilter-persistent python3-pip python3-venv
 
 # --- Configure hostapd ---
-echo "[2/7] Configuring hostapd..."
+echo "[2/8] Configuring hostapd..."
 cat > /etc/hostapd/hostapd.conf <<HOSTAPD
 interface=$WIFI_IFACE
 driver=nl80211
@@ -95,7 +95,7 @@ fi
 sed -i 's|^#DAEMON_CONF.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd 2>/dev/null || true
 
 # --- Configure dnsmasq ---
-echo "[3/7] Configuring dnsmasq..."
+echo "[3/8] Configuring dnsmasq..."
 cat > /etc/dnsmasq.conf <<DNSMASQ
 interface=$WIFI_IFACE
 dhcp-range=$DHCP_RANGE_START,$DHCP_RANGE_END,255.255.255.0,24h
@@ -109,7 +109,7 @@ log-dhcp
 DNSMASQ
 
 # --- Configure static IP ---
-echo "[4/7] Configuring static IP for $WIFI_IFACE..."
+echo "[4/8] Configuring static IP for $WIFI_IFACE..."
 
 ip addr flush dev "$WIFI_IFACE" 2>/dev/null || true
 
@@ -137,18 +137,26 @@ DHCPCD
 esac
 
 # --- Enable IP forwarding ---
-echo "[5/7] Enabling IP forwarding..."
+echo "[5/8] Enabling IP forwarding..."
 echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-piso-wifi.conf
 sysctl -p /etc/sysctl.d/99-piso-wifi.conf
 
+# --- Disable wpa_supplicant and unblock WiFi ---
+echo "[6/8] Preparing WiFi interface..."
+systemctl stop wpa_supplicant 2>/dev/null || true
+systemctl disable wpa_supplicant 2>/dev/null || true
+rfkill unblock wifi 2>/dev/null || true
+ip link set "$WIFI_IFACE" down 2>/dev/null || true
+ip link set "$WIFI_IFACE" up 2>/dev/null || true
+
 # --- Enable services ---
-echo "[6/7] Enabling services..."
+echo "[7/8] Enabling services..."
 systemctl unmask hostapd 2>/dev/null || true
 systemctl enable hostapd dnsmasq
 systemctl restart hostapd dnsmasq 2>/dev/null || true
 
 # --- Install systemd service ---
-echo "[7/7] Installing pisowifi.service..."
+echo "[8/8] Installing pisowifi.service..."
 
 if [ -z "$INSTALL_DIR" ]; then
     if [ -d "/home/pi/piso_wifi" ]; then
