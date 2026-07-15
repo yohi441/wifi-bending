@@ -26,6 +26,12 @@ document.addEventListener('alpine:init', () => {
                 } catch(e) {}
             },
 
+            async insertCoin(amount) {
+                try {
+                    await fetch('/coin-pulse', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount})})
+                } catch(e) {}
+            },
+
             async connectCoin() {
                 if (this.connecting || this.amount < 1) return
                 this.connecting = true; this.autoGrantActive = false
