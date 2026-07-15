@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
@@ -34,9 +34,14 @@ def admin_login_page(request: Request, error: str = ""):
 
 
 @router.post("/login")
-def admin_login(data: LoginRequest, request: Request, db: DbSession = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.username == data.username).first()
-    if not admin or not verify_password(data.password, admin.password_hash):
+def admin_login(
+    username: str = Form(...),
+    password: str = Form(...),
+    request: Request = None,
+    db: DbSession = Depends(get_db),
+):
+    admin = db.query(Admin).filter(Admin.username == username).first()
+    if not admin or not verify_password(password, admin.password_hash):
         return templates.TemplateResponse(
             request, "admin/login.html",
             {"error": "Invalid username or password"},
