@@ -52,16 +52,6 @@ echo "WAN Interface: $WAN_IFACE"
 echo "Gateway: $GATEWAY"
 echo ""
 
-# --- Detect network manager ---
-if systemctl is-active --quiet dhcpcd 2>/dev/null || systemctl is-enabled --quiet dhcpcd 2>/dev/null; then
-    NETWORK_MGR="dhcpcd"
-elif systemctl is-active --quiet NetworkManager 2>/dev/null || systemctl is-enabled --quiet NetworkManager 2>/dev/null; then
-    NETWORK_MGR="NetworkManager"
-else
-    NETWORK_MGR="manual"
-fi
-echo "Detected network manager: $NETWORK_MGR"
-
 # --- Install packages ---
 echo ""
 echo "[1/8] Installing packages..."
@@ -108,46 +98,30 @@ log-queries
 log-dhcp
 DNSMASQ
 
-# --- Configure static IP ---
+# --- Configure static IP via systemd-networkd ---
 echo "[4/8] Configuring static IP for $WIFI_IFACE..."
 
 ip addr flush dev "$WIFI_IFACE" 2>/dev/null || true
 
-case "$NETWORK_MGR" in
-    dhcpcd)
-        cat > /etc/dhcpcd.conf <<DHCPCD
-interface $WIFI_IFACE
-static ip_address=${GATEWAY}/24
-nohook wpa_supplicant
-DHCPCD
-        systemctl restart dhcpcd 2>/dev/null || true
-        ;;
-    NetworkManager)
-        nmcli con delete "PisoWiFi-AP" 2>/dev/null || true
-        nmcli con add type ethernet ifname "$WIFI_IFACE" con-name "PisoWiFi-AP"
-        nmcli con mod "PisoWiFi-AP" ipv4.addresses "${GATEWAY}/24"
-        nmcli con mod "PisoWiFi-AP" ipv4.method manual
-        nmcli con mod "PisoWiFi-AP" connection.autoconnect yes
-        nmcli con up "PisoWiFi-AP" 2>/dev/null || true
-        ;;
-    manual)
-        cat > /etc/systemd/network/12-piso-wifi.network <<NETWORK
+cat > /etc/systemd/network/12-piso-wifi.network <<NETWORK
 [Match]
 Name=$WIFI_IFACE
 
 [Network]
 Address=${GATEWAY}/24
+IPForward=yes
 NETWORK
-        systemctl enable systemd-networkd 2>/dev/null || true
-        ip addr add "${GATEWAY}/24" dev "$WIFI_IFACE" 2>/dev/null || true
-        ip link set "$WIFI_IFACE" up 2>/dev/null || true
-        ;;
-esac
+
+systemctl enable systemd-networkd 2>/dev/null || true
+systemctl restart systemd-networkd 2>/dev/null || true
+
+ip addr add "${GATEWAY}/24" dev "$WIFI_IFACE" 2>/dev/null || true
+ip link set "$WIFI_IFACE" up 2>/dev/null || true
 
 # --- Enable IP forwarding ---
 echo "[5/8] Enabling IP forwarding..."
-echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-piso-wifi.conf
-sysctl -p /etc/sysctl.d/99-piso-wifi.conf
+echo "net.ipv4.ip_forward=1" >> /etc/sysctl.d/99-piso-wifi.conf
+sysctl -p /etc/sysctl.d/99-piso-wifi.conf 2>/dev/null || true
 
 # --- Disable wpa_supplicant and unblock WiFi ---
 echo "[6/8] Preparing WiFi interface..."
