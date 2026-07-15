@@ -1,0 +1,72 @@
+{% extends "admin/base.html" %}
+{% block title %}Vouchers - Piso WiFi Admin{% endblock %}
+{% block heading %}Vouchers{% endblock %}
+{% block content %}
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+        <div class="text-2xl font-extrabold text-[#1a1a2e]">{{ stats.total }}</div>
+        <div class="text-xs text-gray-400 mt-0.5">Total</div>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+        <div class="text-2xl font-extrabold text-[#1a1a2e]">{{ stats.unused }}</div>
+        <div class="text-xs text-gray-400 mt-0.5">Unused</div>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+        <div class="text-2xl font-extrabold text-[#1a1a2e]">{{ stats.used }}</div>
+        <div class="text-xs text-gray-400 mt-0.5">Used</div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 font-semibold">
+                    <th class="text-left px-4 py-3">Code</th>
+                    <th class="text-left px-4 py-3">Duration</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Price</th>
+                    <th class="text-left px-4 py-3">Status</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Created</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Used At</th>
+                    <th class="text-left px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vouchers %}
+                <tr class="border-t border-gray-100 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono font-bold">{{ v.code }}</td>
+                    <td class="px-4 py-3">{{ v.duration_minutes }} min</td>
+                    <td class="px-4 py-3 hidden sm:table-cell">&#8369;{{ v.price_pesos }}</td>
+                    <td class="px-4 py-3">
+                        {% if v.is_used %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-500">Used</span>
+                        {% elif not v.is_active %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-500">Inactive</span>
+                        {% else %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">Unused</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ v.created_at|ph_time }}</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ v.used_at|ph_time }}</td>
+                    <td class="px-4 py-3">
+                        {% if not v.is_used and v.is_active %}
+                        <button class="text-xs text-red-500 font-semibold hover:underline"
+                                onclick="fetch('/admin/vouchers/{{ v.id }}/deactivate',{method:'POST'}).then(()=>location.reload())">
+                            Deactivate
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="flex justify-center gap-2 mt-6">
+    {% if page > 1 %}
+    <a href="/admin/vouchers?page={{ page - 1 }}" class="px-4 py-2 bg-white rounded-lg text-sm border border-gray-200 hover:bg-gray-50 transition">Previous</a>
+    {% endif %}
+    <a href="/admin/vouchers?page={{ page + 1 }}" class="px-4 py-2 bg-white rounded-lg text-sm border border-gray-200 hover:bg-gray-50 transition">Next</a>
+</div>
+{% endblock %}

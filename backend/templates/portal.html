@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piso WiFi - Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.portalConfig = {
+            error: {{ error|tojson }},
+            pollInterval: {{ COIN_POLL_INTERVAL * 1000 }}
+        }
+    </script>
+    <script defer src="/static/portal.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-5"
+      style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)">
+    <div class="w-full max-w-sm bg-white/95 rounded-2xl p-8 shadow-2xl"
+         x-data="portal">
+
+        <div class="text-center mb-5">
+            <h1 class="text-3xl font-extrabold text-[#302b63]">Piso<span class="text-[#f7931e]">WiFi</span></h1>
+            <p class="text-gray-400 text-sm mt-1">Choose how to connect</p>
+        </div>
+
+        <div class="flex rounded-xl overflow-hidden border-2 border-gray-200 mb-6">
+            <button @click="tab='coin'" class="flex-1 py-3 text-center font-bold text-sm transition"
+                    :class="tab==='coin' ? 'bg-[#302b63] text-white' : 'bg-gray-100 text-gray-400'">Insert Coin</button>
+            <button @click="tab='voucher'" class="flex-1 py-3 text-center font-bold text-sm transition"
+                    :class="tab==='voucher' ? 'bg-[#302b63] text-white' : 'bg-gray-100 text-gray-400'">Voucher</button>
+        </div>
+
+        <div x-show="tab==='coin'">
+            <div class="flex items-center justify-center gap-2 mb-4 font-semibold text-sm">
+                <span class="w-3 h-3 rounded-full" :class="safe ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'"></span>
+                <span x-text="safe ? 'Safe to Insert Coin' : 'Not Safe'" :class="safe ? 'text-green-500' : 'text-red-500'"></span>
+            </div>
+
+            <div class="text-center mb-5">
+                <div class="text-5xl font-extrabold text-[#302b63]"><span class="text-[#f7931e]">₱</span><span x-text="amount"></span></div>
+                <div class="text-xl font-semibold text-gray-500 mt-1"><span x-text="minutes"></span> min</div>
+            </div>
+
+            <div class="bg-gray-200 rounded-xl h-3 mb-5 overflow-hidden">
+                <div class="h-full rounded-xl bg-gradient-to-r from-[#f7931e] to-[#e67e22] transition-all duration-500" :style="'width:'+pct+'%'"></div>
+            </div>
+
+            <button @click="showTiers = !showTiers" class="w-full flex items-center justify-center gap-1 text-gray-400 text-sm mb-1 hover:text-gray-600 transition cursor-pointer">
+                <span>₱1 = <span x-text="rate"></span> min</span>
+                <svg :class="showTiers ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+
+            <div x-show="showTiers" class="mb-5" x-transition:enter.duration.200ms>
+                <template x-for="t in tiers" :key="t.a">
+                    <div class="flex justify-between py-1.5 px-3 text-sm border-b border-gray-100 last:border-0">
+                        <span>₱<span x-text="t.a"></span></span>
+                        <span class="font-semibold text-[#302b63]" x-text="t.t"></span>
+                    </div>
+                </template>
+            </div>
+
+            <button @click="connectCoin" :disabled="!buttonEnabled || amount < 1"
+                    :class="buttonEnabled && amount > 0 ? 'bg-gradient-to-r from-[#302b63] to-[#24243e]' : 'bg-gray-400'"
+                    class="w-full py-3.5 text-white font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    x-text="label"></button>
+
+            <div x-show="buttonEnabled && amount > 0" class="text-center text-sm text-gray-400 mt-3">
+                Auto-connect in <span class="font-bold text-[#f7931e]" x-text="autoGrantSeconds"></span>s
+            </div>
+        </div>
+
+        <div x-show="tab==='voucher'">
+            <div x-show="voucherError" x-text="voucherError"
+                 class="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center mb-5"></div>
+            <form @submit.prevent="redeem">
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-gray-600 mb-1.5">Voucher Code</label>
+                    <input type="text" x-model="code" @input="formatCode" placeholder="XXXX-XXXX" maxlength="9"
+                           autocomplete="off" autocorrect="off" autocapitalize="characters" required
+                           class="w-full p-3.5 border-2 border-gray-200 rounded-xl text-xl tracking-widest text-center uppercase font-bold outline-none focus:border-[#f7931e] transition">
+                </div>
+                <button type="submit" :disabled="voucherLoading"
+                        class="w-full py-3.5 bg-gradient-to-r from-[#f7931e] to-[#e67e22] text-white font-bold rounded-xl transition disabled:opacity-50">
+                    <span x-show="!voucherLoading">Connect</span>
+                    <span x-show="voucherLoading">Connecting...</span>
+                </button>
+            </form>
+            <div class="text-center text-sm text-gray-400 mt-5">Need a voucher? Ask the operator</div>
+        </div>
+
+        <div x-show="connecting" x-cloak
+             class="fixed inset-0 bg-[#0f0c29]/85 flex items-center justify-center z-50 flex-col"
+             x-transition.opacity>
+            <div class="w-12 h-12 border-4 border-white/20 border-t-[#f7931e] rounded-full animate-spin"></div>
+            <p class="text-white text-lg font-semibold mt-4">Connecting...</p>
+        </div>
+    </div>
+</body>
+</html>

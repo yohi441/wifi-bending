@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard - Piso WiFi Admin{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+    <div class="bg-white rounded-xl p-5 text-center shadow-sm">
+        <div class="text-3xl font-extrabold text-[#1a1a2e]">{{ stats.total }}</div>
+        <div class="text-sm text-gray-400 mt-1">Total Vouchers</div>
+    </div>
+    <div class="bg-white rounded-xl p-5 text-center shadow-sm">
+        <div class="text-3xl font-extrabold text-[#1a1a2e]">{{ stats.used }}</div>
+        <div class="text-sm text-gray-400 mt-1">Used</div>
+    </div>
+    <div class="bg-white rounded-xl p-5 text-center shadow-sm">
+        <div class="text-3xl font-extrabold text-[#1a1a2e]">{{ stats.unused }}</div>
+        <div class="text-sm text-gray-400 mt-1">Unused</div>
+    </div>
+    <div class="bg-white rounded-xl p-5 text-center shadow-sm">
+        <div class="text-3xl font-extrabold text-[#1a1a2e]">&#8369;{{ stats.total_revenue }}</div>
+        <div class="text-sm text-gray-400 mt-1">Total Revenue</div>
+    </div>
+    <div class="bg-white rounded-xl p-5 text-center shadow-sm">
+        <div class="text-3xl font-extrabold text-[#1a1a2e]">{{ active_sessions_count }}</div>
+        <div class="text-sm text-gray-400 mt-1">Active Sessions</div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl p-6 shadow-sm">
+    <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
+    <a href="/admin/vouchers/create" class="inline-block bg-[#f7931e] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-85 transition">Create New Vouchers</a>
+</div>
+{% endblock %}

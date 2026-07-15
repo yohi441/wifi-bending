@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings - Piso WiFi Admin{% endblock %}
+{% block heading %}Settings{% endblock %}
+{% block content %}
+<div class="max-w-lg" x-data="{
+    minutesPerPeso: {{ minutes_per_peso }},
+    minimumAmount: {{ minimum_amount }},
+    autoGrantTimeout: {{ auto_grant_timeout }},
+    saving: false, saved: false, error: '',
+
+    get tiers() {
+        return [1,5,10,20,50,100].map(a => {
+            const m = a * this.minutesPerPeso, h = Math.floor(m / 60), r = m % 60
+            return {a, t: h > 0 ? `${h}h ${r}m` : `${m} min`}
+        })
+    },
+
+    async save() {
+        this.saving = true; this.saved = false; this.error = ''
+        try {
+            const r = await fetch('/admin/settings', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    minutes_per_peso: this.minutesPerPeso,
+                    minimum_amount: this.minimumAmount,
+                    auto_grant_timeout: this.autoGrantTimeout
+                })
+            })
+            const d = await r.json()
+            d.success ? this.saved = true : this.error = 'Error saving'
+        } catch(e) { this.error = 'Error saving' }
+        finally { this.saving = false; setTimeout(() => this.saved = false, 3000) }
+    }
+}">
+    <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+        <h2 class="text-lg font-semibold mb-4">Coin Operation Rates</h2>
+        <form @submit.prevent="save">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Minutes per peso</label>
+                <input type="number" x-model.number="minutesPerPeso" min="1" max="60" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+                <p class="text-xs text-gray-400 mt-1">How many minutes ₱1 gives. Default: 6</p>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Minimum amount (₱)</label>
+                <input type="number" x-model.number="minimumAmount" min="1" max="100" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+                <p class="text-xs text-gray-400 mt-1">Minimum pesos before Connect enables. Default: ₱1</p>
+            </div>
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Auto-grant timeout (seconds)</label>
+                <input type="number" x-model.number="autoGrantTimeout" min="3" max="60" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+                <p class="text-xs text-gray-400 mt-1">Seconds of inactivity before auto-grant. Default: 10s</p>
+            </div>
+            <button type="submit" :disabled="saving"
+                    class="bg-[#f7931e] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-85 transition disabled:opacity-50">
+                <span x-show="!saving">Save Settings</span>
+                <span x-show="saving">Saving...</span>
+            </button>
+            <span x-show="saved" class="ml-3 text-sm text-green-500 font-semibold" x-cloak>Saved!</span>
+            <span x-show="error" x-text="error" class="ml-3 text-sm text-red-500 font-semibold" x-cloak></span>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <h2 class="text-lg font-semibold mb-4">Preview — Current Rates</h2>
+        <template x-for="t in tiers" :key="t.a">
+            <div class="flex justify-between py-1.5 px-2 text-sm border-b border-gray-100 last:border-0">
+                <span>₱<span x-text="t.a"></span></span>
+                <span class="font-semibold text-[#302b63]" x-text="t.t"></span>
+            </div>
+        </template>
+    </div>
+</div>
+{% endblock %}

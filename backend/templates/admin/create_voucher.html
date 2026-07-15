@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+{% block title %}Create Voucher - Piso WiFi Admin{% endblock %}
+{% block heading %}Create Voucher{% endblock %}
+{% block content %}
+<div class="max-w-md" x-data="{
+    durationMinutes: 60, pricePesos: 10, count: 1,
+    creating: false, result: null, error: '',
+
+    async create() {
+        this.creating = true; this.result = null; this.error = ''
+        try {
+            const r = await fetch('/admin/vouchers/create', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    duration_minutes: this.durationMinutes,
+                    price_pesos: this.pricePesos,
+                    count: this.count
+                })
+            })
+            const d = await r.json()
+            d.success ? this.result = d.vouchers : this.error = 'Error creating vouchers'
+        } catch(e) { this.error = 'Error creating vouchers' }
+        finally { this.creating = false }
+    }
+}">
+    <div class="bg-white rounded-xl p-6 shadow-sm">
+        <form @submit.prevent="create">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Duration (minutes)</label>
+                <input type="number" x-model.number="durationMinutes" min="1" max="43200" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Price (₱)</label>
+                <input type="number" x-model.number="pricePesos" min="0" step="0.5" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+            </div>
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-gray-500 mb-1">Quantity</label>
+                <input type="number" x-model.number="count" min="1" max="100" required
+                       class="w-full p-2.5 border-2 border-gray-200 rounded-lg text-sm outline-none focus:border-[#f7931e] transition">
+            </div>
+            <button type="submit" :disabled="creating"
+                    class="bg-[#f7931e] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-85 transition disabled:opacity-50">
+                <span x-show="!creating">Create</span>
+                <span x-show="creating">Creating...</span>
+            </button>
+        </form>
+    </div>
+
+    <div x-show="error" x-text="error" class="mt-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm"></div>
+
+    <div x-show="result" class="mt-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm">
+            <h2 class="text-lg font-semibold mb-3" x-text="'Created ' + result.length + ' voucher(s)'"></h2>
+            <div class="space-y-2">
+                <template x-for="v in result" :key="v.id">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="font-mono font-bold text-sm" x-text="v.code"></span>
+                        <span class="text-xs text-gray-400" x-text="v.duration_minutes + ' min — ₱' + v.price_pesos"></span>
+                    </div>
+                </template>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">These codes have been saved. Share them with customers.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

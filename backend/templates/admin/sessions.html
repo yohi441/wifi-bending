@@ -1,0 +1,92 @@
+{% extends "admin/base.html" %}
+{% block title %}Sessions - Piso WiFi Admin{% endblock %}
+{% block heading %}Sessions{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl p-5 shadow-sm mb-6">
+    <h2 class="text-lg font-semibold mb-3">Active Sessions ({{ active_sessions|length }})</h2>
+    {% if active_sessions %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 font-semibold">
+                    <th class="text-left px-4 py-3">MAC</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">IP</th>
+                    <th class="text-left px-4 py-3">Duration</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Start</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">End</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Voucher</th>
+                    <th class="text-left px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in active_sessions %}
+                <tr class="border-t border-gray-100 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-xs">{{ s.mac_address }}</td>
+                    <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.ip_address }}</td>
+                    <td class="px-4 py-3">{{ s.duration_minutes }} min</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.start_time|ph_time }}</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.end_time|ph_time }}</td>
+                    <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.voucher_code or '-' }}</td>
+                    <td class="px-4 py-3">
+                        <button class="text-xs text-red-500 font-semibold hover:underline"
+                                onclick="if(confirm('Disconnect?'))fetch('/admin/sessions/{{ s.id }}/disconnect',{method:'POST'}).then(()=>location.reload())">
+                            Disconnect
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-400 text-sm">No active sessions</p>
+    {% endif %}
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-100">
+        <h2 class="text-base font-semibold">Recent Sessions</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 font-semibold">
+                    <th class="text-left px-4 py-3">MAC</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">IP</th>
+                    <th class="text-left px-4 py-3">Duration</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Start</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">End</th>
+                    <th class="text-left px-4 py-3">Status</th>
+                    <th class="text-left px-4 py-3 hidden sm:table-cell">Voucher</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr class="border-t border-gray-100 hover:bg-gray-50">
+                    <td class="px-4 py-3 font-mono text-xs">{{ s.mac_address }}</td>
+                    <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.ip_address }}</td>
+                    <td class="px-4 py-3">{{ s.duration_minutes }} min</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.start_time|ph_time }}</td>
+                    <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.end_time|ph_time }}</td>
+                    <td class="px-4 py-3">
+                        {% if s.is_active %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-500">Active</span>
+                        {% else %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-400">Ended</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.voucher_code or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="flex justify-center gap-2 mt-6">
+    {% if page > 1 %}
+    <a href="/admin/sessions?page={{ page - 1 }}" class="px-4 py-2 bg-white rounded-lg text-sm border border-gray-200 hover:bg-gray-50 transition">Previous</a>
+    {% endif %}
+    <a href="/admin/sessions?page={{ page + 1 }}" class="px-4 py-2 bg-white rounded-lg text-sm border border-gray-200 hover:bg-gray-50 transition">Next</a>
+</div>
+{% endblock %}

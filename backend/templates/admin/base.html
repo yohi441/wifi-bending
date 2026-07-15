@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Piso WiFi Admin{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="bg-gray-100 text-gray-700 font-sans" x-data="{ sidebarOpen: false }">
+
+    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+         class="fixed inset-0 bg-black/50 z-40 sm:hidden"></div>
+
+    <aside class="fixed top-0 left-0 bottom-0 w-60 bg-[#1a1a2e] text-white z-50
+                  -translate-x-full sm:translate-x-0 transition-transform duration-200"
+           :class="{ 'translate-x-0': sidebarOpen }">
+        <div class="text-2xl font-extrabold py-6 px-6 border-b border-white/10 mb-4 flex items-center justify-between">
+            Piso<span class="text-[#f7931e]">WiFi</span>
+            <button @click="sidebarOpen = false" class="sm:hidden text-xl hover:text-white/70">✕</button>
+        </div>
+        <a href="/admin" class="block py-3 px-6 -mx-6 text-sm font-medium transition rounded-r-full
+            {% if request.url.path == '/admin' %}bg-white/10 text-white{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %}">
+            Dashboard
+        </a>
+        <a href="/admin/vouchers" class="block py-3 px-6 -mx-6 text-sm font-medium transition rounded-r-full
+            {% if 'vouchers' in request.url.path %}bg-white/10 text-white{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %}">
+            Vouchers
+        </a>
+        <a href="/admin/sessions" class="block py-3 px-6 -mx-6 text-sm font-medium transition rounded-r-full
+            {% if 'sessions' in request.url.path %}bg-white/10 text-white{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %}">
+            Sessions
+        </a>
+        <a href="/admin/settings" class="block py-3 px-6 -mx-6 text-sm font-medium transition rounded-r-full
+            {% if 'settings' in request.url.path %}bg-white/10 text-white{% else %}text-white/70 hover:bg-white/5 hover:text-white{% endif %}">
+            Settings
+        </a>
+    </aside>
+
+    <main class="min-h-screen sm:ml-60 p-4 sm:p-8">
+        <div class="flex items-center gap-3 mb-8">
+            <button @click="sidebarOpen = true" class="sm:hidden text-2xl text-[#1a1a2e]">☰</button>
+            <h1 class="text-xl sm:text-3xl font-bold text-[#1a1a2e]">{% block heading %}Dashboard{% endblock %}</h1>
+        </div>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

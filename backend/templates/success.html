@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connected - Piso WiFi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.successConfig = {
+            remaining: {{ remaining_seconds|tojson }},
+            mac: {{ mac|tojson }}
+        }
+    </script>
+    <script defer src="/static/success.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-5"
+      style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)">
+    <div class="w-full max-w-sm bg-white/95 rounded-2xl p-10 shadow-2xl text-center"
+         x-data="success">
+
+        <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl text-white">&#10003;</div>
+
+        <h1 class="text-2xl font-bold text-green-500 mb-2">You're Connected!</h1>
+        <p class="text-gray-500 mb-6">Internet access is now active</p>
+
+        <div class="bg-gray-50 rounded-xl p-5 mb-6">
+            <div class="text-5xl font-extrabold text-[#302b63] tabular-nums" x-text="display"></div>
+            <div class="text-sm text-gray-400 mt-1">Remaining Time</div>
+        </div>
+
+        <div class="flex justify-between py-2 text-sm text-gray-500 border-b border-gray-100">
+            <span>Device</span>
+            <span class="font-semibold text-gray-700" x-text="mac"></span>
+        </div>
+    </div>
+</body>
+</html>
