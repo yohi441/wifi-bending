@@ -54,13 +54,6 @@ def setup_captive_portal() -> None:
     ])
 
     _run([
-        "iptables", "-t", "nat", "-A", "PREROUTING",
-        "-i", WIFI_IFACE,
-        "-p", "tcp", "--dport", "443",
-        "-j", "REDIRECT", "--to-port", "8000",
-    ])
-
-    _run([
         "iptables", "-A", "FORWARD",
         "-i", WAN_IFACE, "-o", WIFI_IFACE,
         "-m", "state", "--state", "ESTABLISHED,RELATED",
@@ -114,12 +107,6 @@ def flush_all() -> None:
             "iptables", "-t", "nat", "-D", "PREROUTING",
             "-i", WIFI_IFACE,
             "-p", "tcp", "--dport", "80",
-            "-j", "REDIRECT", "--to-port", "8000",
-        ], check=False)
-        _run([
-            "iptables", "-t", "nat", "-D", "PREROUTING",
-            "-i", WIFI_IFACE,
-            "-p", "tcp", "--dport", "443",
             "-j", "REDIRECT", "--to-port", "8000",
         ], check=False)
         _run([
