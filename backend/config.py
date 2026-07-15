@@ -26,6 +26,8 @@ COIN_MINIMUM_AMOUNT = 1
 COIN_POLL_INTERVAL = 2
 COIN_GPIO_PIN = int(os.getenv("COIN_GPIO_PIN", "17"))
 
+SESSION_SECRET = os.getenv("SESSION_SECRET", "change-me-in-production")
+
 DEFAULT_COIN_SETTINGS = {
     "coin_minutes_per_peso": str(COIN_MINUTES_PER_PESO),
     "coin_auto_grant_timeout": str(COIN_AUTO_GRANT_TIMEOUT),

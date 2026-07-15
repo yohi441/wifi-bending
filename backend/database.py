@@ -22,6 +22,7 @@ def get_db():
 def init_db():
     import backend.models
     from backend.config import DEFAULT_COIN_SETTINGS
+    from backend.auth import hash_password
 
     Base.metadata.create_all(bind=engine)
 
@@ -33,6 +34,15 @@ def init_db():
             ).first()
             if not existing:
                 db.add(backend.models.Setting(key=key, value=value))
+
+        existing_admin = db.query(backend.models.Admin).filter(
+            backend.models.Admin.username == "admin"
+        ).first()
+        if not existing_admin:
+            db.add(backend.models.Admin(
+                username="admin",
+                password_hash=hash_password("admin123"),
+            ))
         db.commit()
     finally:
         db.close()

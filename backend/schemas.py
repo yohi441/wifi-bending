@@ -62,3 +62,8 @@ class CoinSettingsUpdate(BaseModel):
     minutes_per_peso: int = Field(ge=1, le=60)
     auto_grant_timeout: int = Field(ge=3, le=60)
     minimum_amount: int = Field(ge=1, le=100)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str

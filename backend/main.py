@@ -9,10 +9,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from backend.admin_api import router as admin_router
 from backend.captive_portal import router as portal_router
-from backend.config import HOST, PORT
+from backend.config import HOST, PORT, SESSION_SECRET
 from backend.database import init_db
 from backend.firewall import setup_captive_portal
 from backend.scheduler import session_expiry_loop, stop as stop_scheduler
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory="backend/static"), name="static")
     app.include_router(portal_router)
     app.include_router(admin_router)
+    app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 
     @app.get("/", response_class=HTMLResponse)
     def root():

@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
+from backend.auth import require_admin, verify_password
 from backend.database import get_db
 from backend.firewall import revoke_access
-from backend.models import Setting
-from backend.schemas import CoinSettingsUpdate, SessionResponse, VoucherCreate, VoucherResponse
+from backend.models import Admin, Setting
+from backend.schemas import CoinSettingsUpdate, LoginRequest, SessionResponse, VoucherCreate, VoucherResponse
 from backend.session_manager import (
     end_session,
     get_active_sessions,
@@ -27,8 +28,32 @@ templates = Jinja2Templates(directory="backend/templates")
 templates.env.filters["ph_time"] = ph_time
 
 
+@router.get("/login", response_class=HTMLResponse)
+def admin_login_page(request: Request, error: str = ""):
+    return templates.TemplateResponse(request, "admin/login.html", {"error": error})
+
+
+@router.post("/login")
+def admin_login(data: LoginRequest, request: Request, db: DbSession = Depends(get_db)):
+    admin = db.query(Admin).filter(Admin.username == data.username).first()
+    if not admin or not verify_password(data.password, admin.password_hash):
+        return templates.TemplateResponse(
+            request, "admin/login.html",
+            {"error": "Invalid username or password"},
+        )
+    request.session["admin_id"] = admin.id
+    return RedirectResponse(url="/admin", status_code=303)
+
+
+@router.get("/logout")
+def admin_logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/admin/login", status_code=303)
+
+
 @router.get("", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: DbSession = Depends(get_db)):
+    require_admin(request)
     stats = get_voucher_stats(db)
     active = get_active_sessions(db)
     return templates.TemplateResponse(
@@ -47,6 +72,7 @@ def admin_vouchers(
     page: int = Query(1, ge=1),
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     limit = 50
     skip = (page - 1) * limit
     vouchers = get_vouchers(db, skip=skip, limit=limit)
@@ -64,6 +90,7 @@ def admin_vouchers(
 
 @router.get("/vouchers/create", response_class=HTMLResponse)
 def admin_create_voucher_page(request: Request):
+    require_admin(request)
     return templates.TemplateResponse(
         request,
         "admin/create_voucher.html",
@@ -73,8 +100,10 @@ def admin_create_voucher_page(request: Request):
 @router.post("/vouchers/create")
 def admin_create_voucher(
     data: VoucherCreate,
+    request: Request,
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     vouchers = generate_vouchers(
         db=db,
         duration_minutes=data.duration_minutes,
@@ -98,8 +127,10 @@ def admin_create_voucher(
 @router.post("/vouchers/{voucher_id}/deactivate")
 def admin_deactivate_voucher(
     voucher_id: int,
+    request: Request,
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     voucher = deactivate_voucher(db, voucher_id)
     if not voucher:
         raise HTTPException(status_code=404, detail="Voucher not found")
@@ -112,6 +143,7 @@ def admin_sessions(
     page: int = Query(1, ge=1),
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     limit = 50
     skip = (page - 1) * limit
     sessions = get_recent_sessions(db, skip=skip, limit=limit)
@@ -130,8 +162,10 @@ def admin_sessions(
 @router.post("/sessions/{session_id}/disconnect")
 def admin_disconnect_session(
     session_id: int,
+    request: Request,
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     session = get_session_by_id(db, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -142,6 +176,7 @@ def admin_disconnect_session(
 
 @router.get("/settings", response_class=HTMLResponse)
 def admin_settings_page(request: Request, db: DbSession = Depends(get_db)):
+    require_admin(request)
     def get_val(key: str, default: str) -> int:
         row = db.query(Setting).filter(Setting.key == key).first()
         return int(row.value) if row else int(default)
@@ -160,8 +195,10 @@ def admin_settings_page(request: Request, db: DbSession = Depends(get_db)):
 @router.post("/settings")
 def admin_update_settings(
     data: CoinSettingsUpdate,
+    request: Request,
     db: DbSession = Depends(get_db),
 ):
+    require_admin(request)
     def upsert(key: str, value: str):
         row = db.query(Setting).filter(Setting.key == key).first()
         if row:

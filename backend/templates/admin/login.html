@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Piso WiFi</title>
+    <link rel="stylesheet" href="/static/tailwind.min.css">
+    <style>[x-cloak]{display:none!important}</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-5"
+      style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)">
+    <div class="w-full max-w-sm bg-white/95 rounded-2xl p-8 shadow-2xl">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-extrabold text-[#302b63]">Piso<span class="text-[#f7931e]">WiFi</span></h1>
+            <p class="text-gray-400 text-sm mt-1">Admin Panel</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center mb-5">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/admin/login">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">Username</label>
+                <input type="text" name="username" required autocomplete="username"
+                       class="w-full p-3 border-2 border-gray-200 rounded-xl outline-none focus:border-[#f7931e] transition">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-600 mb-1.5">Password</label>
+                <input type="password" name="password" required autocomplete="current-password"
+                       class="w-full p-3 border-2 border-gray-200 rounded-xl outline-none focus:border-[#f7931e] transition">
+            </div>
+            <button type="submit"
+                    class="w-full py-3.5 bg-gradient-to-r from-[#302b63] to-[#24243e] text-white font-bold rounded-xl transition hover:opacity-90">
+                Sign In
+            </button>
+        </form>
+    </div>
+</body>
+</html>
