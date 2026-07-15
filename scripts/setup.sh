@@ -124,13 +124,21 @@ DHCPCD
         ;;
     NetworkManager)
         nmcli con delete "PisoWiFi-AP" 2>/dev/null || true
-        nmcli con add type wifi ifname "$WIFI_IFACE" con-name "PisoWiFi-AP" autoconnect no ssid "$SSID"
+        nmcli con add type ethernet ifname "$WIFI_IFACE" con-name "PisoWiFi-AP"
         nmcli con mod "PisoWiFi-AP" ipv4.addresses "${GATEWAY}/24"
         nmcli con mod "PisoWiFi-AP" ipv4.method manual
-        nmcli con mod "PisoWiFi-AP" connection.autoconnect no
+        nmcli con mod "PisoWiFi-AP" connection.autoconnect yes
         nmcli con up "PisoWiFi-AP" 2>/dev/null || true
         ;;
     manual)
+        cat > /etc/systemd/network/12-piso-wifi.network <<NETWORK
+[Match]
+Name=$WIFI_IFACE
+
+[Network]
+Address=${GATEWAY}/24
+NETWORK
+        systemctl enable systemd-networkd 2>/dev/null || true
         ip addr add "${GATEWAY}/24" dev "$WIFI_IFACE" 2>/dev/null || true
         ip link set "$WIFI_IFACE" up 2>/dev/null || true
         ;;
