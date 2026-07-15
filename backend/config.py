@@ -10,8 +10,8 @@ PORT = int(os.getenv("PORT", "8000"))
 
 WIFI_IFACE = os.getenv("WIFI_IFACE", "wlan0")
 WAN_IFACE = os.getenv("WAN_IFACE", "eth0")
-GATEWAY_IP = os.getenv("GATEWAY_IP", "192.168.1.1")
-SUBNET = os.getenv("SUBNET", "192.168.1.0/24")
+GATEWAY_IP = os.getenv("GATEWAY_IP", "10.0.0.1")
+SUBNET = os.getenv("SUBNET", "10.0.0.0/24")
 
 VOUCHER_CODE_LENGTH = 8
 VOUCHER_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
