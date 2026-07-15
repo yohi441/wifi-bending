@@ -1,35 +1,75 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Piso WiFi — Raspberry Pi Setup Script
-# Configures hostapd, dnsmasq, and iptables for captive portal
+# Piso WiFi — Multi-Platform Setup Script
+# Supports: Raspberry Pi (Pi OS, DietPi) + Orange Pi (Armbian)
+# Auto-detects: network manager, WAN interface, WiFi interface
 
 SSID="${SSID:-PisoWiFi}"
 PASSPHRASE="${PASSPHRASE:-}"
-WIFI_IFACE="${WIFI_IFACE:-wlan0}"
-WAN_IFACE="${WAN_IFACE:-eth0}"
+WIFI_IFACE="${WIFI_IFACE:-}"
+WAN_IFACE="${WAN_IFACE:-}"
 IP_NET="${IP_NET:-192.168.1}"
 GATEWAY="${IP_NET}.1"
 DHCP_RANGE_START="${IP_NET}.100"
 DHCP_RANGE_END="${IP_NET}.200"
+INSTALL_DIR="${INSTALL_DIR:-}"
 
-echo "=== Piso WiFi Setup ==="
-echo "SSID: $SSID"
-echo "WiFi Interface: $WIFI_IFACE"
-echo "WAN Interface: $WAN_IFACE"
-echo "Gateway: $GATEWAY"
+echo "=== Piso WiFi Multi-Platform Setup ==="
 
 if [ "$EUID" -ne 0 ]; then
     echo "Please run as root (sudo)"
     exit 1
 fi
 
-echo ""
-echo "[1/6] Installing packages..."
-apt-get update -qq
-apt-get install -y -qq hostapd dnsmasq iptables-persistent netfilter-persistent python3-pip
+# --- Auto-detect interfaces ---
+if [ -z "$WAN_IFACE" ]; then
+    if ip link show eth0 &>/dev/null; then
+        WAN_IFACE="eth0"
+    elif ip link show end0 &>/dev/null; then
+        WAN_IFACE="end0"
+    else
+        echo "ERROR: No WAN interface found. Set WAN_IFACE manually."
+        exit 1
+    fi
+fi
 
-echo "[2/6] Configuring hostapd..."
+if [ -z "$WIFI_IFACE" ]; then
+    if ip link show wlan0 &>/dev/null; then
+        WIFI_IFACE="wlan0"
+    else
+        WIFI_IFACE=$(ls /sys/class/net/ 2>/dev/null | grep -E '^wl' | head -1 || true)
+        if [ -z "$WIFI_IFACE" ]; then
+            echo "ERROR: No WiFi interface found. Plug in a USB WiFi dongle or set WIFI_IFACE manually."
+            exit 1
+        fi
+    fi
+fi
+
+echo "SSID: $SSID"
+echo "WiFi Interface: $WIFI_IFACE"
+echo "WAN Interface: $WAN_IFACE"
+echo "Gateway: $GATEWAY"
+echo ""
+
+# --- Detect network manager ---
+if systemctl is-active --quiet dhcpcd 2>/dev/null || systemctl is-enabled --quiet dhcpcd 2>/dev/null; then
+    NETWORK_MGR="dhcpcd"
+elif systemctl is-active --quiet NetworkManager 2>/dev/null || systemctl is-enabled --quiet NetworkManager 2>/dev/null; then
+    NETWORK_MGR="NetworkManager"
+else
+    NETWORK_MGR="manual"
+fi
+echo "Detected network manager: $NETWORK_MGR"
+
+# --- Install packages ---
+echo ""
+echo "[1/7] Installing packages..."
+apt-get update -qq
+apt-get install -y -qq hostapd dnsmasq iptables-persistent netfilter-persistent python3-pip python3-venv
+
+# --- Configure hostapd ---
+echo "[2/7] Configuring hostapd..."
 cat > /etc/hostapd/hostapd.conf <<HOSTAPD
 interface=$WIFI_IFACE
 driver=nl80211
@@ -52,9 +92,10 @@ rsn_pairwise=CCMP
 HOSTAPD_SEC
 fi
 
-sed -i 's|^#DAEMON_CONF.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd
+sed -i 's|^#DAEMON_CONF.*|DAEMON_CONF="/etc/hostapd/hostapd.conf"|' /etc/default/hostapd 2>/dev/null || true
 
-echo "[3/6] Configuring dnsmasq..."
+# --- Configure dnsmasq ---
+echo "[3/7] Configuring dnsmasq..."
 cat > /etc/dnsmasq.conf <<DNSMASQ
 interface=$WIFI_IFACE
 dhcp-range=$DHCP_RANGE_START,$DHCP_RANGE_END,255.255.255.0,24h
@@ -67,27 +108,99 @@ log-queries
 log-dhcp
 DNSMASQ
 
-echo "[4/6] Configuring static IP for $WIFI_IFACE..."
-cat > /etc/dhcpcd.conf <<DHCPCD
+# --- Configure static IP ---
+echo "[4/7] Configuring static IP for $WIFI_IFACE..."
+
+ip addr flush dev "$WIFI_IFACE" 2>/dev/null || true
+
+case "$NETWORK_MGR" in
+    dhcpcd)
+        cat > /etc/dhcpcd.conf <<DHCPCD
 interface $WIFI_IFACE
 static ip_address=${GATEWAY}/24
 nohook wpa_supplicant
 DHCPCD
+        systemctl restart dhcpcd 2>/dev/null || true
+        ;;
+    NetworkManager)
+        nmcli con delete "PisoWiFi-AP" 2>/dev/null || true
+        nmcli con add type wifi ifname "$WIFI_IFACE" con-name "PisoWiFi-AP" autoconnect no
+        nmcli con mod "PisoWiFi-AP" ipv4.addresses "${GATEWAY}/24"
+        nmcli con mod "PisoWiFi-AP" ipv4.method manual
+        nmcli con mod "PisoWiFi-AP" connection.autoconnect no
+        nmcli con up "PisoWiFi-AP" 2>/dev/null || true
+        ;;
+    manual)
+        ip addr add "${GATEWAY}/24" dev "$WIFI_IFACE" 2>/dev/null || true
+        ip link set "$WIFI_IFACE" up 2>/dev/null || true
+        ;;
+esac
 
-echo "[5/6] Enabling IP forwarding..."
+# --- Enable IP forwarding ---
+echo "[5/7] Enabling IP forwarding..."
 echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-piso-wifi.conf
 sysctl -p /etc/sysctl.d/99-piso-wifi.conf
 
-echo "[6/6] Enabling services..."
-systemctl unmask hostapd
+# --- Enable services ---
+echo "[6/7] Enabling services..."
+systemctl unmask hostapd 2>/dev/null || true
 systemctl enable hostapd dnsmasq
-systemctl restart dhcpcd
+systemctl restart hostapd dnsmasq 2>/dev/null || true
+
+# --- Install systemd service ---
+echo "[7/7] Installing pisowifi.service..."
+
+if [ -z "$INSTALL_DIR" ]; then
+    if [ -d "/home/pi/piso_wifi" ]; then
+        INSTALL_DIR="/home/pi/piso_wifi"
+    elif [ -d "/root/piso_wifi" ]; then
+        INSTALL_DIR="/root/piso_wifi"
+    elif [ -f "$PWD/backend/main.py" ]; then
+        INSTALL_DIR="$PWD"
+    else
+        INSTALL_DIR="/home/pi/piso_wifi"
+    fi
+fi
+
+VENV_PYTHON="${INSTALL_DIR}/venv/bin/python"
+if [ ! -f "$VENV_PYTHON" ]; then
+    VENV_PYTHON="$(which python3)"
+fi
+
+cat > /etc/systemd/system/pisowifi.service <<SERVICE
+[Unit]
+Description=Piso WiFi Server
+After=network.target hostapd.service dnsmasq.service
+Wants=hostapd.service dnsmasq.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=${VENV_PYTHON} -m backend.main
+Restart=on-failure
+RestartSec=5
+Environment=DEV_MODE=false
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+systemctl daemon-reload
+systemctl enable pisowifi
 
 echo ""
 echo "=== Setup complete! ==="
+echo ""
+echo "Interfaces:"
+echo "  WAN:  $WAN_IFACE (internet from router)"
+echo "  WiFi: $WIFI_IFACE (AP broadcasting '$SSID')"
+echo "  Gateway: $GATEWAY"
+echo "  DHCP range: $DHCP_RANGE_START - $DHCP_RANGE_END"
+echo ""
 echo "Reboot to apply changes: sudo reboot"
 echo ""
-echo "After reboot, run the Piso WiFi server:"
-echo "  cd /path/to/piso_wifi"
-echo "  pip install -r requirements.txt"
-echo "  python -m backend.main"
+echo "After reboot, the system starts automatically."
+echo "To start manually without reboot:"
+echo "  sudo systemctl start pisowifi"
+echo ""

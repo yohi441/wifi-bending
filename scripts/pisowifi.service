@@ -1,0 +1,16 @@
+[Unit]
+Description=Piso WiFi Server
+After=network.target hostapd.service dnsmasq.service
+Wants=hostapd.service dnsmasq.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/piso_wifi
+ExecStart=/home/pi/piso_wifi/venv/bin/python -m backend.main
+Restart=on-failure
+RestartSec=5
+Environment=DEV_MODE=false
+
+[Install]
+WantedBy=multi-user.target

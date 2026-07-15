@@ -67,6 +67,12 @@ def setup_captive_portal() -> None:
         "-j", "ACCEPT",
     ])
 
+    _run([
+        "iptables", "-t", "nat", "-A", "POSTROUTING",
+        "-o", WAN_IFACE,
+        "-j", "MASQUERADE",
+    ])
+
     logger.info("Captive portal iptables rules installed")
 
 
@@ -126,6 +132,11 @@ def flush_all() -> None:
             "-i", WAN_IFACE, "-o", WIFI_IFACE,
             "-m", "state", "--state", "ESTABLISHED,RELATED",
             "-j", "ACCEPT",
+        ], check=False)
+        _run([
+            "iptables", "-t", "nat", "-D", "POSTROUTING",
+            "-o", WAN_IFACE,
+            "-j", "MASQUERADE",
         ], check=False)
         logger.info("All PISO_WIFI rules flushed")
     except subprocess.CalledProcessError as e:
