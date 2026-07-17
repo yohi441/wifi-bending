@@ -8,7 +8,6 @@ from backend.firewall import get_mac_from_ip, grant_access
 from backend.models import Setting
 from backend.session_manager import create_session as create_db_session
 from backend.session_manager import get_active_session_by_mac
-from backend.voucher import generate_vouchers
 
 logger = logging.getLogger(__name__)
 
@@ -48,28 +47,20 @@ def process_coin(
         if existing:
             return {"success": False, "message": "Already have an active session"}
 
-        vouchers = generate_vouchers(
-            db=db,
-            duration_minutes=duration_minutes,
-            price_pesos=float(amount),
-            count=1,
-        )
-        voucher = vouchers[0]
-
         grant_access(mac_address)
         session = create_db_session(
             db=db,
             mac_address=mac_address,
             ip_address=ip_address,
             duration_minutes=duration_minutes,
-            voucher_code=voucher.code,
+            source="coin",
         )
 
         coin_state.reset()
 
         logger.info(
-            "Coin op: ₱%d → %d min, voucher %s, session %d",
-            amount, duration_minutes, voucher.code, session.id,
+            "Coin op: ₱%d → %d min, session %d",
+            amount, duration_minutes, session.id,
         )
 
         return {
@@ -77,7 +68,6 @@ def process_coin(
             "message": f"Access granted for {duration_minutes} minutes",
             "session_id": session.id,
             "duration_minutes": duration_minutes,
-            "voucher_code": voucher.code,
         }
     finally:
         if close_db:

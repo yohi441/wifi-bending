@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy.orm import Session as DbSession
+from sqlalchemy import func
 
 from backend.models import Session
 
@@ -11,6 +11,7 @@ def create_session(
     ip_address: str,
     duration_minutes: int,
     voucher_code: str | None = None,
+    source: str = "voucher",
 ) -> Session:
     end_time = datetime.utcnow() + timedelta(minutes=duration_minutes)
     session = Session(
@@ -19,6 +20,7 @@ def create_session(
         ip_address=ip_address,
         duration_minutes=duration_minutes,
         end_time=end_time,
+        source=source,
     )
     db.add(session)
     db.commit()
@@ -81,3 +83,25 @@ def get_remaining_seconds(session: Session) -> int:
         return 0
     remaining = (session.end_time - datetime.utcnow()).total_seconds()
     return max(0, int(remaining))
+
+
+def get_session_stats(db: DbSession) -> dict:
+    total = db.query(Session).count()
+    active = db.query(Session).filter(
+        Session.is_active == True,
+        Session.end_time > datetime.utcnow(),
+    ).count()
+    coin_sessions = db.query(Session).filter(Session.source == "coin").count()
+    voucher_sessions = db.query(Session).filter(Session.source == "voucher").count()
+    revenue_entry = db.query(
+        func.sum(Session.duration_minutes)
+    ).filter(
+        Session.is_active == False
+    ).scalar()
+    return {
+        "total": total,
+        "active": active,
+        "coin": coin_sessions,
+        "voucher": voucher_sessions,
+        "total_minutes_sold": revenue_entry or 0,
+    }

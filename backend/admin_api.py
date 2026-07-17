@@ -13,6 +13,7 @@ from backend.session_manager import (
     get_active_sessions,
     get_recent_sessions,
     get_session_by_id,
+    get_session_stats,
 )
 from backend.voucher import (
     deactivate_voucher,
@@ -60,12 +61,14 @@ def admin_logout(request: Request):
 def admin_dashboard(request: Request, db: DbSession = Depends(get_db)):
     require_admin(request)
     stats = get_voucher_stats(db)
+    session_stats = get_session_stats(db)
     active = get_active_sessions(db)
     return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
         {
             "stats": stats,
+            "session_stats": session_stats,
             "active_sessions_count": len(active),
         },
     )

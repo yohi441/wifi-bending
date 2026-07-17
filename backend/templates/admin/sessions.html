@@ -15,6 +15,7 @@
                     <th class="text-left px-4 py-3 hidden sm:table-cell">Start</th>
                     <th class="text-left px-4 py-3 hidden sm:table-cell">End</th>
                     <th class="text-left px-4 py-3 hidden sm:table-cell">Voucher</th>
+                    <th class="text-left px-4 py-3">Source</th>
                     <th class="text-left px-4 py-3"></th>
                 </tr>
             </thead>
@@ -27,6 +28,13 @@
                     <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.start_time|ph_time }}</td>
                     <td class="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{{ s.end_time|ph_time }}</td>
                     <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.voucher_code or '-' }}</td>
+                    <td class="px-4 py-3">
+                        {% if s.source == "coin" %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600">Coin</span>
+                        {% else %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">Voucher</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-3">
                         <button class="text-xs text-red-500 font-semibold hover:underline"
                                 onclick="if(confirm('Disconnect?'))fetch('/admin/sessions/{{ s.id }}/disconnect',{method:'POST'}).then(()=>location.reload())">
@@ -58,6 +66,7 @@
                     <th class="text-left px-4 py-3 hidden sm:table-cell">End</th>
                     <th class="text-left px-4 py-3">Status</th>
                     <th class="text-left px-4 py-3 hidden sm:table-cell">Voucher</th>
+                    <th class="text-left px-4 py-3">Source</th>
                 </tr>
             </thead>
             <tbody>
@@ -76,6 +85,13 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 font-mono text-xs hidden sm:table-cell">{{ s.voucher_code or '-' }}</td>
+                    <td class="px-4 py-3">
+                        {% if s.source == "coin" %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-600">Coin</span>
+                        {% else %}
+                        <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">Voucher</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

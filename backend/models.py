@@ -39,6 +39,7 @@ class Session(Base):
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     data_used_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(10), default="voucher")
 
 
 class Admin(Base):
