@@ -12,6 +12,7 @@ def create_session(
     duration_minutes: int,
     voucher_code: str | None = None,
     source: str = "voucher",
+    amount_pesos: float | None = None,
 ) -> Session:
     end_time = datetime.utcnow() + timedelta(minutes=duration_minutes)
     session = Session(
@@ -21,6 +22,7 @@ def create_session(
         duration_minutes=duration_minutes,
         end_time=end_time,
         source=source,
+        amount_pesos=amount_pesos,
     )
     db.add(session)
     db.commit()
@@ -98,10 +100,16 @@ def get_session_stats(db: DbSession) -> dict:
     ).filter(
         Session.is_active == False
     ).scalar()
+    coin_revenue_entry = db.query(
+        func.sum(Session.amount_pesos)
+    ).filter(
+        Session.source == "coin"
+    ).scalar()
     return {
         "total": total,
         "active": active,
         "coin": coin_sessions,
         "voucher": voucher_sessions,
         "total_minutes_sold": revenue_entry or 0,
+        "coin_revenue": round(coin_revenue_entry or 0, 2),
     }

@@ -54,6 +54,7 @@ def process_coin(
             ip_address=ip_address,
             duration_minutes=duration_minutes,
             source="coin",
+            amount_pesos=float(amount),
         )
 
         coin_state.reset()

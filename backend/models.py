@@ -40,6 +40,7 @@ class Session(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     data_used_bytes: Mapped[int] = mapped_column(Integer, default=0)
     source: Mapped[str] = mapped_column(String(10), default="voucher")
+    amount_pesos: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
 
 
 class Admin(Base):
