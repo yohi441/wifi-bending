@@ -7,7 +7,8 @@ from backend.database import SessionLocal
 from backend.firewall import get_mac_from_ip, grant_access
 from backend.models import Setting
 from backend.session_manager import create_session as create_db_session
-from backend.session_manager import get_active_session_by_mac
+from backend.session_manager import get_active_session_by_mac, get_remaining_seconds
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +74,38 @@ def process_coin(
     finally:
         if close_db:
             db.close()
+
+
+def add_time_to_session(
+    amount: int,
+    mac_address: str,
+    ip_address: str,
+    db: DbSession,
+) -> dict:
+    minutes_per_peso, auto_grant_timeout, minimum_amount = _get_settings(db)
+    duration_minutes = amount * minutes_per_peso
+
+    if duration_minutes < 1:
+        return {"success": False, "message": "Amount too low"}
+
+    existing = get_active_session_by_mac(db, mac_address)
+    if not existing:
+        return {"success": False, "message": "No active session found"}
+
+    existing.end_time = existing.end_time + timedelta(minutes=duration_minutes)
+    existing.duration_minutes = existing.duration_minutes + duration_minutes
+    db.commit()
+
+    logger.info(
+        "Add time: ₱%d → +%d min, session %d",
+        amount, duration_minutes, existing.id,
+    )
+
+    new_remaining = get_remaining_seconds(existing)
+    return {
+        "success": True,
+        "message": f"Added {duration_minutes} minutes",
+        "session_id": existing.id,
+        "added_minutes": duration_minutes,
+        "new_remaining_seconds": new_remaining,
+    }

@@ -8,7 +8,8 @@
     <script>
         window.portalConfig = {
             error: {{ error|tojson }},
-            pollInterval: {{ COIN_POLL_INTERVAL * 1000 }}
+            pollInterval: {{ COIN_POLL_INTERVAL * 1000 }},
+            addTime: {{ add_time|default(false)|tojson }}
         }
     </script>
     <script defer src="/static/portal.js"></script>
@@ -22,17 +23,17 @@
 
         <div class="text-center mb-5">
             <h1 class="text-3xl font-extrabold text-[#302b63]">Piso<span class="text-[#f7931e]">WiFi</span></h1>
-            <p class="text-gray-400 text-sm mt-1">Choose how to connect</p>
+            <p class="text-gray-400 text-sm mt-1" x-text="addTime ? 'Add more time' : 'Choose how to connect'"></p>
         </div>
 
-        <div class="flex rounded-xl overflow-hidden border-2 border-gray-200 mb-6">
+        <div class="flex rounded-xl overflow-hidden border-2 border-gray-200 mb-6" x-show="!addTime">
             <button @click="tab='coin'" class="flex-1 py-3 text-center font-bold text-sm transition"
                     :class="tab==='coin' ? 'bg-[#302b63] text-white' : 'bg-gray-100 text-gray-400'">Insert Coin</button>
             <button @click="tab='voucher'" class="flex-1 py-3 text-center font-bold text-sm transition"
                     :class="tab==='voucher' ? 'bg-[#302b63] text-white' : 'bg-gray-100 text-gray-400'">Voucher</button>
         </div>
 
-        <div x-show="tab==='coin'">
+        <div x-show="addTime || tab==='coin'">
             <div class="flex items-center justify-center gap-2 mb-4 font-semibold text-sm">
                 <span class="w-3 h-3 rounded-full" :class="safe ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'"></span>
                 <span x-text="safe ? 'Safe to Insert Coin' : 'Not Safe'" :class="safe ? 'text-green-500' : 'text-red-500'"></span>

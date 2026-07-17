@@ -7,6 +7,7 @@ document.addEventListener('alpine:init', () => {
             buttonEnabled: false, autoGrantSeconds: 10, rate: 6,
             connecting: false, autoGrantActive: true, showTiers: false,
             voucherError: cfg.error || '', voucherLoading: false, code: '',
+            addTime: cfg.addTime || false,
 
             init() {
                 const interval = cfg.pollInterval || 2000
@@ -36,7 +37,8 @@ document.addEventListener('alpine:init', () => {
                 if (this.connecting || this.amount < 1) return
                 this.connecting = true; this.autoGrantActive = false
                 try {
-                    const r = await fetch('/coin-connect', {method:'POST'}), d = await r.json()
+                    const endpoint = this.addTime ? '/coin-add-time' : '/coin-connect'
+                    const r = await fetch(endpoint, {method:'POST'}), d = await r.json()
                     if (d.success) window.location.href = '/portal'
                     else { this.connecting = false; this.autoGrantActive = true; alert(d.message) }
                 } catch(e) { this.connecting = false; this.autoGrantActive = true; alert('Connection error') }
@@ -62,9 +64,9 @@ document.addEventListener('alpine:init', () => {
             },
 
             get label() {
-                if (this.buttonEnabled && this.amount > 0) return `Connect — ₱${this.amount} (${this.minutes} min)`
+                if (this.buttonEnabled && this.amount > 0) return this.addTime ? `Add Time — ₱${this.amount} (${this.minutes} min)` : `Connect — ₱${this.amount} (${this.minutes} min)`
                 if (this.amount > 0) return `Insert ₱${Math.max(1, 1 - this.amount)} more (min ₱1)`
-                return 'Insert Coin to Start'
+                return this.addTime ? 'Insert Coin to Add Time' : 'Insert Coin to Start'
             },
             get pct() { return Math.min(100, (this.amount / 50) * 100) },
             get tiers() {

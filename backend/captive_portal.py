@@ -14,7 +14,7 @@ from backend.session_manager import (
 )
 from backend.voucher import mark_voucher_used, validate_voucher
 
-from backend.coin_acceptor import coin_state, process_coin
+from backend.coin_acceptor import coin_state, process_coin, add_time_to_session
 from backend.config import COIN_POLL_INTERVAL
 from backend.models import Setting
 from backend.schemas import CoinPulseRequest, CoinStatusResponse, StatusResponse
@@ -70,6 +70,25 @@ def portal_page(request: Request, db: DbSession = Depends(get_db)):
             "error": "",
             "default_tab": "coin",
             "COIN_POLL_INTERVAL": COIN_POLL_INTERVAL,
+        },
+    )
+
+
+@router.get("/portal/add-time", response_class=HTMLResponse)
+def portal_add_time(request: Request, db: DbSession = Depends(get_db)):
+    mac = get_mac_from_ip(request.client.host) if request.client else None
+    if mac:
+        session = get_active_session_by_mac(db, mac)
+        if not session:
+            return RedirectResponse(url="/portal", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "portal.html",
+        {
+            "error": "",
+            "default_tab": "coin",
+            "COIN_POLL_INTERVAL": COIN_POLL_INTERVAL,
+            "add_time": True,
         },
     )
 
@@ -174,4 +193,31 @@ def coin_connect(
         ip_address=ip_address,
         db=db,
     )
+    return result
+
+
+@router.post("/coin-add-time")
+def coin_add_time(
+    request: Request,
+    db: DbSession = Depends(get_db),
+):
+    if coin_state.amount < 1:
+        return {"success": False, "message": "Insert coin first"}
+
+    ip_address = request.client.host if request.client else "0.0.0.0"
+    mac_address = get_mac_from_ip(ip_address)
+
+    if not mac_address:
+        return {"success": False, "message": "Could not identify your device"}
+
+    result = add_time_to_session(
+        amount=coin_state.amount,
+        mac_address=mac_address,
+        ip_address=ip_address,
+        db=db,
+    )
+
+    if result["success"]:
+        coin_state.reset()
+
     return result
